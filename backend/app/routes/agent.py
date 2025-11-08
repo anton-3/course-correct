@@ -59,12 +59,6 @@ def advisor_chat():
     try:
         normalized_history = _normalize_conversation(conversation)
         reply_text = run_academic_advisor_agent(normalized_history)
-    except RuntimeError as exc:
-        # Distinguish missing google-genai dependency from other internal errors
-        message = str(exc)
-        if "google-genai package not installed" in message:
-            return jsonify({"error": message, "code": "agent_unavailable"}), 503
-        return jsonify({"error": message}), 500
     except ValueError as exc:
         return jsonify({"error": str(exc)}), 400
     except Exception as exc:
