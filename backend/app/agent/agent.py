@@ -8,54 +8,17 @@ from google.genai import types
 from app.services.rmp import RMPClient
 
 _MODEL_NAME = "gemini-2.5-flash"
-_DEFAULT_SCHOOL = "University of Nebraska-Lincoln"
 _MAX_TOOL_INTERACTIONS = 5
 
-advisor_tool_declarations = [
-    {
-        "name": "get_professor_summary",
-        "description": (
-            "Retrieve a RateMyProfessors summary for an instructor at the "
-            "University of Nebraska-Lincoln."
-        ),
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "professor_name": {
-                    "type": "string",
-                    "description": "Name of the professor to search for.",
-                },
-            },
-            "required": ["professor_name"],
-        },
-    },
-]
-
 genai_client = genai.Client()  # Assumes GOOGLE_API_KEY is set
-tools = types.Tool(function_declarations=advisor_tool_declarations)
+tools = types.Tool(function_declarations=ALL_TOOL_DECLARATIONS)
 config = types.GenerateContentConfig(tools=[tools])
-
-rmp_client = RMPClient()
 
 ToolPayload = Dict[str, Any]
 ToolResult = Dict[str, Any]
 ToolHandler = Callable[[ToolPayload], ToolResult]
 
-
-def _handle_get_professor_summary(payload: ToolPayload) -> ToolResult:
-    professor_name = payload.get("professor_name")
-    if not professor_name:
-        raise ValueError("Function call missing 'professor_name'.")
-
-    return rmp_client.get_professor_summary(
-        school_name=_DEFAULT_SCHOOL,
-        professor_name=professor_name,
-    )
-
-
-TOOL_HANDLERS: dict[str, ToolHandler] = {
-    "get_professor_summary": _handle_get_professor_summary,
-}
+TOOL_HANDLERS: dict[str, ToolHandler] = ALL_TOOL_HANDLERS
 
 
 def _coerce_message_to_content(message: Mapping[str, Any]) -> types.Content:
