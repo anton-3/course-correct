@@ -13,10 +13,12 @@ def create_app():
     from .routes.health import health_bp
     from .routes.elevenlabs import elevenlabs_bp
     from .routes.rmp import rmp_bp
+    from .routes.agent import agent_bp
 
     app.register_blueprint(health_bp, url_prefix="/api")
     app.register_blueprint(elevenlabs_bp, url_prefix="/api/elevenlabs")
     app.register_blueprint(rmp_bp, url_prefix="/api/rmp")
+    app.register_blueprint(agent_bp, url_prefix="/api/agent")
 
     @app.get("/")
     def root():
