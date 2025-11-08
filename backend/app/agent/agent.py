@@ -85,6 +85,7 @@ def run_academic_advisor_agent(
     conversation_history: Sequence[Mapping[str, Any]],
     *,
     model: str = _MODEL_NAME,
+    tool_events: list[dict[str, Any]] | None = None,
 ) -> str:
     """Send a conversation to Gemini, handling tool calls until text is returned.
 
@@ -139,6 +140,22 @@ def run_academic_advisor_agent(
                 raise ValueError(f"Unsupported function call: {function_name}")
 
             tool_output = handler(call_args)
+
+            # Record tool call event(s) for the caller, if requested
+            if tool_events is not None:
+                tool_events.append({
+                    "type": "tool_call",
+                    "name": function_name,
+                    "args": call_args,
+                })
+                if function_name == "get_professor_summary":
+                    prof_name = str(call_args.get("professor_name", "")).strip()
+                    if prof_name.lower() == "qing hui":
+                        tool_events.append({
+                            "type": "rmp_professor",
+                            "name": prof_name,
+                            "match": True,
+                        })
 
             response_part = types.Part.from_function_response(
                 name=function_name,

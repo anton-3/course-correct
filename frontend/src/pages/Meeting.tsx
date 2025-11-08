@@ -5,6 +5,7 @@ import PushToTalkIndicator from "@/components/PushToTalkIndicator";
 import VoiceSelector from "@/components/VoiceSelector";
 import { useRealtimeElevenLabs } from "@/hooks/useRealtimeElevenLabs";
 import { speakText } from "@/lib/tts"; // implemented dynamically; ensure file exists
+import { fetchAgentReply } from "@/lib/agent";
 import { useSpeechToText } from "@/hooks/useSpeechToText";
 import { cn } from "@/lib/utils";
 
@@ -82,7 +83,16 @@ const Meeting = () => {
             setMessages((prev) => [...prev, userMessage]);
           }
 
-          const responseText = userText || "I understand. Let me think about that.";
+          // Call Gemini academic advisor agent for richer reply if we captured user text.
+          let responseText = userText || "I understand. Let me think about that.";
+          if (userText) {
+            try {
+              responseText = await fetchAgentReply(userText);
+            } catch (e) {
+              // If agent fails, we still continue the loop (TTS + chat append) with echo text
+              console.warn("Agent reply failed, falling back to echo", e);
+            }
+          }
           setIsAgentSpeaking(true);
           const ok = await speakText(responseText, voiceId);
           setTimeout(() => setIsAgentSpeaking(false), 200);
@@ -163,12 +173,18 @@ const Meeting = () => {
                 { id: `u-${Date.now()}`, content: `You: ${text}`, timestamp: new Date() },
               ]);
               setIsAgentSpeaking(true);
-              const ok = await speakText(text, voiceId);
+              let agentReply = text;
+              try {
+                agentReply = await fetchAgentReply(text);
+              } catch (e) {
+                console.warn("Agent reply failed, using original text", e);
+              }
+              const ok = await speakText(agentReply, voiceId);
               setIsAgentSpeaking(false);
               if (ok) {
                 setMessages((prev) => [
                   ...prev,
-                  { id: `${Date.now()}`, content: `Agent: ${text}`, timestamp: new Date() },
+                  { id: `${Date.now()}`, content: `Agent: ${agentReply}`, timestamp: new Date() },
                 ]);
               } else {
                 setMessages((prev) => [

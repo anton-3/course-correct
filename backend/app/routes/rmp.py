@@ -37,6 +37,12 @@ def professor_lookup():
     try:
         client = RMPClient()
         summary = client.get_professor_summary(school, name, comment_limit=num_reviews)
+        # Inject audio trigger flag if professor matches Qing Hui
+        if summary and isinstance(summary, dict):
+            prof_name = str(summary.get("name", "")).strip().lower()
+            # Use substring match to be robust if middle names / punctuation appear
+            if "qing hui" in prof_name:
+                summary["audio_trigger"] = "qing_hui"
         return jsonify(summary)
     except ValueError as e:
         return jsonify({"error": str(e)}), 404

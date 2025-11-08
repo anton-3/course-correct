@@ -58,11 +58,13 @@ def advisor_chat():
 
     try:
         normalized_history = _normalize_conversation(conversation)
-        reply_text = run_academic_advisor_agent(normalized_history)
+        events: list[dict[str, Any]] = []
+        reply_text = run_academic_advisor_agent(normalized_history, tool_events=events)
     except ValueError as exc:
         return jsonify({"error": str(exc)}), 400
     except Exception as exc:
         return jsonify({"error": str(exc)}), 500
 
-    return jsonify({"reply": reply_text})
+    # Bubble up events so the frontend can react (e.g., play audio)
+    return jsonify({"reply": reply_text, "events": events})
 
