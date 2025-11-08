@@ -1,0 +1,16 @@
+[2025-11-08 16:28:44,291] WARNING in __init__: Agent blueprint disabled: Missing key inputs argument! To use the Google AI API, provide (`api_key`) arguments. To use the Google Cloud API, provide (`vertexai`, `project` & `location`) arguments.
+Exception ignored in: <function Client.__del__ at 0x123f22f20>
+Traceback (most recent call last):
+  File "/opt/anaconda3/lib/python3.13/site-packages/google/genai/client.py", line 400, in __del__
+    self.close()
+  File "/opt/anaconda3/lib/python3.13/site-packages/google/genai/client.py", line 386, in close
+    self._api_client.close()
+AttributeError: 'Client' object has no attribute '_api_client'
+ * Serving Flask app 'app'
+ * Debug mode: off
+WARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:8000
+ * Running on http://192.168.255.194:8000
+Press CTRL+C to quit
+127.0.0.1 - - [08/Nov/2025 16:28:49] "GET /api/rmp/professor?school=University%20of%20Nebraska-Lincoln&name=Qing%20Hui&num_reviews=1 HTTP/1.1" 200 -
