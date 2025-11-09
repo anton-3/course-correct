@@ -21,3 +21,21 @@ Traceback (most recent call last):
     self._api_client.close()
 AttributeError: 'Client' object has no attribute '_api_client'
 127.0.0.1 - - [08/Nov/2025 17:14:45] "POST /api/agent/chat HTTP/1.1" 500 -
+Exception ignored in: <function Client.__del__ at 0x10e127060>
+Traceback (most recent call last):
+  File "/opt/anaconda3/lib/python3.13/site-packages/google/genai/client.py", line 400, in __del__
+    self.close()
+  File "/opt/anaconda3/lib/python3.13/site-packages/google/genai/client.py", line 386, in close
+    self._api_client.close()
+AttributeError: 'Client' object has no attribute '_api_client'
+127.0.0.1 - - [08/Nov/2025 17:31:44] "POST /api/agent/chat HTTP/1.1" 500 -
+Exception ignored in: <function Client.__del__ at 0x10e127060>
+Traceback (most recent call last):
+  File "/opt/anaconda3/lib/python3.13/site-packages/google/genai/client.py", line 400, in __del__
+    self.close()
+  File "/opt/anaconda3/lib/python3.13/site-packages/google/genai/client.py", line 386, in close
+    self._api_client.close()
+AttributeError: 'Client' object has no attribute '_api_client'
+127.0.0.1 - - [08/Nov/2025 17:37:40] "POST /api/agent/chat HTTP/1.1" 500 -
+127.0.0.1 - - [08/Nov/2025 17:40:17] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [08/Nov/2025 17:40:17] "GET /favicon.ico HTTP/1.1" 404 -

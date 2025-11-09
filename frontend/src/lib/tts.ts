@@ -2,7 +2,29 @@
 
 // Intentionally no browser speech synthesis fallback here.
 
+let currentAudio: HTMLAudioElement | null = null;
+let currentMediaSource: MediaSource | null = null;
+
+export function stopCurrentTTS() {
+  try {
+    if (currentAudio) {
+      currentAudio.pause();
+      currentAudio.src = '';
+    }
+    if (currentMediaSource && currentMediaSource.readyState === 'open') {
+      try { currentMediaSource.endOfStream(); } catch (_) { /* ignore */ }
+    }
+  } catch (e) {
+    // non-fatal
+  } finally {
+    currentAudio = null;
+    currentMediaSource = null;
+  }
+}
+
 export async function speakText(text: string, voice_id?: string): Promise<boolean> {
+  // Stop any in-progress TTS to avoid overlapping speech
+  stopCurrentTTS();
   // Use GET streaming endpoint for lower latency playback if available.
   const params = new URLSearchParams({ text });
   if (voice_id) params.set('voice_id', voice_id);
@@ -22,7 +44,9 @@ export async function speakText(text: string, voice_id?: string): Promise<boolea
     try { await audio.play(); return true; } catch (e) { console.error('Audio play failed', e); return false; }
   }
   const mediaSource = new MediaSource();
+  currentMediaSource = mediaSource;
   const audioEl = new Audio();
+  currentAudio = audioEl;
   audioEl.preload = 'auto';
   audioEl.src = URL.createObjectURL(mediaSource);
   audioEl.play().catch((e) => console.error('Audio play failed', e));
@@ -36,6 +60,10 @@ export async function speakText(text: string, voice_id?: string): Promise<boolea
       const blob = await resp.blob();
       const url2 = URL.createObjectURL(blob);
       audioEl.src = url2;
+      audioEl.onended = () => {
+        URL.revokeObjectURL(url2);
+        if (currentAudio === audioEl) currentAudio = null;
+      };
       audioEl.play().catch((err) => console.error('Audio play failed', err));
       return;
     }
@@ -67,11 +95,13 @@ export async function speakText(text: string, voice_id?: string): Promise<boolea
     }
     // Ensure buffer not updating before closing stream
     if (sourceBuffer.updating) await waitUpdateEnd();
-    try {
-      mediaSource.endOfStream();
-    } catch (e) {
-      console.error('endOfStream failed', e);
-    }
+    try { mediaSource.endOfStream(); } catch (e) { console.error('endOfStream failed', e); }
+    audioEl.onended = () => {
+      if (audioEl.src.startsWith('blob:')) {
+        try { URL.revokeObjectURL(audioEl.src); } catch (_) { /* ignore */ }
+      }
+      if (currentAudio === audioEl) currentAudio = null;
+    };
   });
   return true;
 }
@@ -91,8 +121,13 @@ export async function converse(userText: string) {
   // Stream audio similarly to speakText fallback
   const blob = await resp.blob(); // simpler for now; could implement streaming like above
   const url = URL.createObjectURL(blob);
+  stopCurrentTTS();
   const audio = new Audio(url);
-  audio.onended = () => URL.revokeObjectURL(url);
+  currentAudio = audio;
+  audio.onended = () => {
+    URL.revokeObjectURL(url);
+    if (currentAudio === audio) currentAudio = null;
+  };
   audio.play().catch(() => {});
   return { reply: replyHeader || '(no reply header)', status: resp.status };
 }

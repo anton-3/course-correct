@@ -31,6 +31,10 @@ export function useSpeechToText() {
   const [listening, setListening] = useState(false);
   const [finalText, setFinalText] = useState<string>('');
   const [interimText, setInterimText] = useState<string>('');
+  // Buffer every piece of speech (final or interim) while the mic is active,
+  // so very short presses still yield a transcript even if the API never marks
+  // anything as final before stop() fires.
+  const bufferRef = useRef<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const recRef = useRef<ISpeechRecognition | null>(null);
   const stopResolverRef = useRef<((text: string) => void) | null>(null);
@@ -58,11 +62,14 @@ export function useSpeechToText() {
       let interim = '';
       for (let i = e.resultIndex; i < e.results.length; ++i) {
         const result = e.results[i];
+        const chunk = result[0].transcript;
         if (result.isFinal) {
-          setFinalText((prev) => (prev ? prev + ' ' : '') + result[0].transcript);
-        }
-        else {
-          interim += (interim ? ' ' : '') + result[0].transcript;
+          setFinalText((prev) => (prev ? prev + ' ' : '') + chunk);
+          bufferRef.current.push(chunk);
+        } else {
+          interim += (interim ? ' ' : '') + chunk;
+          // Still capture interim so a quick tap returns something
+          bufferRef.current.push(chunk);
         }
       }
       setInterimText(interim);
@@ -70,11 +77,20 @@ export function useSpeechToText() {
     rec.onend = () => {
       setListening(false);
       setInterimText('');
-      // Resolve any awaiting caller with the latest finalized text
+      // If no finalText was produced (e.g., very short press), synthesize from buffer
+      if (!finalRef.current && bufferRef.current.length) {
+        const synthetic = bufferRef.current.join(' ').trim();
+        if (synthetic) {
+          setFinalText(synthetic);
+          finalRef.current = synthetic; // keep ref in sync
+        }
+      }
+      // Resolve any awaiting caller with the latest finalized (or synthetic) text
       if (stopResolverRef.current) {
         stopResolverRef.current(finalRef.current);
         stopResolverRef.current = null;
       }
+      bufferRef.current = [];
     };
     rec.onerror = (ev: Event) => {
       const e = ev as unknown as { error?: unknown };
@@ -108,8 +124,9 @@ export function useSpeechToText() {
   const start = () => {
     if (!recRef.current) return;
     if (listening) return; // guard duplicate start
-    setFinalText('');
-    setInterimText('');
+  setFinalText('');
+  setInterimText('');
+  bufferRef.current = [];
     setError(null);
     try {
       recRef.current.start();

@@ -3,15 +3,22 @@ export type AgentEvent =
   | { type: "rmp_professor"; name: string; match?: boolean }
   | { type: string; [key: string]: unknown };
 
-export async function fetchAgentReply(userText: string): Promise<string> {
-  const payload = {
-    conversation: [
-      {
-        role: "user",
-        parts: [userText],
-      },
+// Maintain a running conversation so the agent has context.
+// Seed with an instruction message; we expect the model to respond succinctly.
+const conversationHistory: Array<{ role: string; parts: string[] }> = [
+  {
+    role: "user",
+    parts: [
+      "INSTRUCTIONS FOR THE CONVERSATION: You are an AI academic advisor. You respond to requests in succinct answers that are no longer than a sentence. The conversation begins on my next message.",
     ],
-  };
+  },
+];
+
+export async function fetchAgentReply(userText: string): Promise<string> {
+  // Append the new user message
+  conversationHistory.push({ role: "user", parts: [userText] });
+
+  const payload = { conversation: conversationHistory };
 
   const resp = await fetch("/api/agent/chat", {
     method: "POST",
@@ -33,6 +40,11 @@ export async function fetchAgentReply(userText: string): Promise<string> {
 
   const data = await resp.json();
   const reply: string = (data && data.reply) || "";
+
+  if (reply) {
+    // Store model reply into history for next turn context
+    conversationHistory.push({ role: "model", parts: [reply] });
+  }
   const events: AgentEvent[] = Array.isArray(data?.events) ? data.events : [];
 
   // If RMP grabbed Qing Hui, play the notification sound.
