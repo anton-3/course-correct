@@ -28,7 +28,7 @@ def clean_value(v):
     """Clean text value by removing special characters and extra whitespace."""
     return v.replace("\xa0", " ").strip().lstrip(":").strip()
 
-def get_unl_course_info(dept: str, code: str):
+def get_unl_course_info(course_code):
     """
     Fetch and parse course information from the UNL course catalog.
     
@@ -39,7 +39,7 @@ def get_unl_course_info(dept: str, code: str):
     Returns:
         dict: Course information with standardized fields
     """
-    course_code = f"{dept} {code}"
+    dept, code = course_code.split()
     query = f"{dept}%20{code}"
     url = f"https://catalog.unl.edu/search/?caturl=%2Fundergraduate&scontext=courses&search={query}"
 

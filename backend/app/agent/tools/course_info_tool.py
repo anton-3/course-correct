@@ -8,6 +8,9 @@ from app.services.unl import get_unl_course_info
 ToolPayload = Dict[str, Any]
 ToolResult = Dict[str, Any]
 
+# In-memory cache for course info, keyed by normalized course ID
+_COURSE_INFO_CACHE: Dict[str, tuple[ToolResult, str | None]] = {}
+
 _TOOL_DECLARATIONS = [
     {
         "name": "get_course_info",
@@ -120,6 +123,13 @@ def _handle_get_course_info(payload: ToolPayload) -> ToolResult:
         raise ValueError("Function call missing 'course_id'.")
 
     normalized_id = _normalize_course_id(course_id)
+    
+    # Check cache first
+    if normalized_id in _COURSE_INFO_CACHE:
+        print("=============== CACHE HIT FOR COURSE INFO ===============")
+        cached_result, cached_markdown = _COURSE_INFO_CACHE[normalized_id]
+        return cached_result, cached_markdown
+    
     errors: Dict[str, str] = {}
 
     catalog_data: Dict[str, Any] | None = None
@@ -172,6 +182,9 @@ def _handle_get_course_info(payload: ToolPayload) -> ToolResult:
         sections = registration_data.get("sections", [])
         if sections:
             markdown_table = _generate_sections_markdown_table(sections)
+
+    # Store in cache before returning
+    _COURSE_INFO_CACHE[normalized_id] = (result, markdown_table)
 
     return result, markdown_table
 
