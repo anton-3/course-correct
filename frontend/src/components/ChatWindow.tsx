@@ -5,6 +5,7 @@ import remarkGfm from "remark-gfm";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Send } from "lucide-react";
+import { useEffect, useRef } from "react";
 
 interface ChatWindowProps {
   messages: Message[];
@@ -19,6 +20,26 @@ const ChatWindow = ({
   onInputChange,
   onSendMessage,
 }: ChatWindowProps) => {
+  const scrollAreaRef = useRef<React.ElementRef<typeof ScrollArea>>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    // Scroll to bottom whenever messages change
+    if (scrollAreaRef.current && messagesEndRef.current) {
+      // Access the viewport element inside the ScrollArea
+      const viewport = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement;
+      if (viewport) {
+        viewport.scrollTo({
+          top: viewport.scrollHeight,
+          behavior: "smooth"
+        });
+      } else {
+        // Fallback to scrollIntoView if viewport not found
+        messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+      }
+    }
+  }, [messages]);
+
   const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
@@ -34,7 +55,7 @@ const ChatWindow = ({
         <div className="status-item">Latency: Nominal</div>
       </div>
 
-      <ScrollArea className="mission-body">
+      <ScrollArea ref={scrollAreaRef} className="mission-body">
         <div className="space-y-2.5">
           {messages.map((message) => {
             const isMd = message.markdown;
@@ -51,6 +72,7 @@ const ChatWindow = ({
               </div>
             );
           })}
+          <div ref={messagesEndRef} />
         </div>
       </ScrollArea>
       <div className="mission-footer">
