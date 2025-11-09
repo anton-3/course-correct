@@ -20,7 +20,7 @@ def load_config():
         "CORS_ORIGINS": os.getenv("CORS_ORIGINS", "*"),
         # ElevenLabs
         "ELEVENLABS_API_KEY": os.getenv("ELEVENLABS_API_KEY", ""),
-        "ELEVENLABS_DEFAULT_VOICE_ID": os.getenv("ELEVENLABS_DEFAULT_VOICE_ID", "JBFqnCBsd6RMkjVDRZzb"),
+        "ELEVENLABS_DEFAULT_VOICE_ID": os.getenv("ELEVENLABS_DEFAULT_VOICE_ID", "XrExE9yKIg1WjnnlVkGX"),
         "ELEVENLABS_TTS_MODEL_ID": os.getenv("ELEVENLABS_TTS_MODEL_ID", "eleven_multilingual_v2"),
         "ELEVENLABS_OUTPUT_FORMAT": os.getenv("ELEVENLABS_OUTPUT_FORMAT", "mp3_44100_128"),
     # Lower first-byte audio latency for streaming

@@ -107,7 +107,7 @@ const Meeting = () => {
               setActiveAgentReply(agentReply);
               setIsAgentSpeaking(true);
               const ok = await speakText(agentReply, voiceId, {
-                rate: 1.15,
+                rate: 1.5,
                 onStart: () => setActiveAgentReply(agentReply),
               });
               setTimeout(() => setIsAgentSpeaking(false), 200);
@@ -196,7 +196,7 @@ const Meeting = () => {
                 setIsThinking(false);
                 setActiveAgentReply(agentReply);
                 const ok = await speakText(agentReply, voiceId, {
-                  rate: 1.15,
+                  rate: 1.5,
                   onStart: () => setActiveAgentReply(agentReply),
                 });
                 // if (ok) {
