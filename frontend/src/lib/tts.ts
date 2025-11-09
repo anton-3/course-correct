@@ -53,9 +53,19 @@ export async function speakText(text: string, voice_id?: string, options?: Speak
   currentMediaSource = mediaSource;
   const audioEl = new Audio();
   currentAudio = audioEl;
-  if (options?.rate && options.rate > 0) {
-    try { audioEl.playbackRate = options.rate; } catch (_) { /* ignore */ }
-  }
+  const desiredRate = options?.rate && options.rate > 0 ? options.rate : 1.0;
+  try { audioEl.playbackRate = desiredRate; } catch (_) { /* ignore */ }
+  // Try to preserve pitch so faster playback doesn't sound chipmunky (where supported)
+  try {
+    const pitchy = audioEl as HTMLAudioElement & {
+      preservesPitch?: boolean;
+      mozPreservesPitch?: boolean;
+      webkitPreservesPitch?: boolean;
+    };
+    if (typeof pitchy.preservesPitch !== 'undefined') pitchy.preservesPitch = true;
+    if (typeof pitchy.mozPreservesPitch !== 'undefined') pitchy.mozPreservesPitch = true;
+    if (typeof pitchy.webkitPreservesPitch !== 'undefined') pitchy.webkitPreservesPitch = true;
+  } catch (_) { /* ignore */ }
   audioEl.preload = 'auto';
   audioEl.src = URL.createObjectURL(mediaSource);
   let started = false;
@@ -66,7 +76,29 @@ export async function speakText(text: string, voice_id?: string, options?: Speak
     }
   };
   audioEl.addEventListener('playing', onPlaying, { once: true });
-  audioEl.play().catch((e) => console.error('Audio play failed', e));
+  // We'll optionally delay play for >1.0 rates until a small buffer accumulates so speed-up is audible.
+  const maybeStartPlayback = () => {
+    if (started) return;
+    // If not speeding up, start immediately
+    if (desiredRate <= 1.0) {
+      audioEl.play().catch((e) => console.error('Audio play failed', e));
+      return;
+    }
+    // For faster playback, require a short buffer so we can actually play faster than real-time.
+    // Base threshold: ~1.2s. For higher speeds (>=1.5) increase so we can maintain accelerated playback without starving.
+    let bufferedAhead = 0;
+    try {
+      if (audioEl.buffered.length > 0) {
+        const end = audioEl.buffered.end(audioEl.buffered.length - 1);
+        const current = audioEl.currentTime || 0;
+        bufferedAhead = Math.max(0, end - current);
+      }
+    } catch (_) { /* ignore */ }
+    const requiredAhead = desiredRate >= 1.5 ? 2.0 : 1.2;
+    if (bufferedAhead >= requiredAhead) {
+      audioEl.play().catch((e) => console.error('Audio play failed', e));
+    }
+  };
   mediaSource.addEventListener('sourceopen', async () => {
     const mime = contentType.includes('mpeg') ? 'audio/mpeg' : contentType;
     let sourceBuffer: SourceBuffer;
@@ -104,6 +136,8 @@ export async function speakText(text: string, voice_id?: string, options?: Speak
       }
       // Wait for this append to finish before returning
       await waitUpdateEnd();
+      // After each append, see if we can start playback for >1.0 rates
+      maybeStartPlayback();
     };
     while (true) {
       const { value, done } = await reader.read();
@@ -113,6 +147,8 @@ export async function speakText(text: string, voice_id?: string, options?: Speak
     // Ensure buffer not updating before closing stream
     if (sourceBuffer.updating) await waitUpdateEnd();
     try { mediaSource.endOfStream(); } catch (e) { console.error('endOfStream failed', e); }
+    // If we never reached buffer threshold (e.g., very short clip), start playback now
+    maybeStartPlayback();
     audioEl.onended = () => {
       if (audioEl.src.startsWith('blob:')) {
         try { URL.revokeObjectURL(audioEl.src); } catch (_) { /* ignore */ }
