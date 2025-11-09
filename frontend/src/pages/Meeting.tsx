@@ -99,7 +99,6 @@ const Meeting = () => {
               const agentResponse = await fetchAgentReply(userText);
               setIsThinking(false);
               const agentReply = agentResponse.reply;
-              setActiveAgentReply(agentReply);
               
               // Add chat message as markdown if present and non-empty
               if (agentResponse.chat) {
@@ -113,12 +112,17 @@ const Meeting = () => {
               }
               
               setIsAgentSpeaking(true);
+              setActiveAgentReply(""); // Clear previous reply before starting new audio
               const speakOptions = {
                 rate: 1.2,
                 onStart: () => setActiveAgentReply(agentReply),
                 onLevel: (lvl: number) => setAudioLevel(lvl),
               };
-              await speakText(agentReply, voiceId, speakOptions);
+              const result = await speakText(agentReply, voiceId, speakOptions);
+              // If 401 error, still show the typewriter reply
+              if (!result.success && result.status === 401) {
+                setActiveAgentReply(agentReply);
+              }
               setTimeout(() => setIsAgentSpeaking(false), 200);
             } catch (e) {
               setIsThinking(false);
@@ -291,7 +295,6 @@ const Meeting = () => {
         const agentResponse = await fetchAgentReply(text);
         setIsThinking(false);
         const agentReply = agentResponse.reply;
-        setActiveAgentReply(agentReply);
         
         // Add chat message as markdown if present and non-empty
         if (agentResponse.chat) {
@@ -304,12 +307,17 @@ const Meeting = () => {
           setMessages((prev) => [...prev, chatMessage]);
         }
         
+        setActiveAgentReply(""); // Clear previous reply before starting new audio
         const speakOptions = {
           rate: 1.5,
           onStart: () => setActiveAgentReply(agentReply),
           onLevel: (lvl: number) => setAudioLevel(lvl),
         };
-        await speakText(agentReply, voiceId, speakOptions);
+        const result = await speakText(agentReply, voiceId, speakOptions);
+        // If 401 error, still show the typewriter reply
+        if (!result.success && result.status === 401) {
+          setActiveAgentReply(agentReply);
+        }
         setTimeout(() => setIsAgentSpeaking(false), 200);
       } catch (e) {
         setIsThinking(false);

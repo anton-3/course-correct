@@ -90,6 +90,8 @@ def run_academic_advisor_agent(
             raise RuntimeError("Model returned an empty content payload.")
 
         parts = content.parts or []
+        if len(parts) == 0:
+            raise RuntimeError("Model returned an empty parts payload.")
         conversation.append(content)
 
         function_called = False

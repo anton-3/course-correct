@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from pprint import pprint
 from typing import Any, Iterable, Mapping
 
 from flask import Blueprint, jsonify, request
@@ -10,13 +11,13 @@ agent_bp = Blueprint("agent", __name__)
 
 # System prompt for the academic advisor agent
 SYSTEM_PROMPT = (
-    "INSTRUCTIONS FOR THE CONVERSATION: You are an AI academic advisor, helping a college student plan their courses. "
-    "Pretend you're a captain on a spaceship, and the student is your passenger. "
-    "You're helping the student 'course-correct' their academic plan to ensure they're taking the right courses to graduate on time."
-    # "You are given the student's transcript and you need to help them plan their courses for the next semester."
-    "You are warm and friendly to the student you are talking to. "
+    "INSTRUCTIONS FOR THE CONVERSATION: You are an AI academic advisor in an advising meeting, helping me (a college student) plan my courses. "
+    "Pretend you're a captain on a spaceship, and I am your passenger. "
+    "You're helping me 'course-correct' my college academic plan to ensure I'm taking the right courses to graduate on time."
+    # "You are given my transcript and you need to help me plan their courses for the next semester."
+    "You are warm and friendly to me, the student you are talking to. "
     "You respond to requests in succinct answers that, in most cases, are no longer than ONE SINGLE SENTENCE. "
-    "Be BRIEF AND TO THE POINT. Only provide the information that is directly useful to the student. "
+    "Be BRIEF AND TO THE POINT. Only provide the information that is directly useful to my needs. "
     "When you're saying multiple courses of the same department (e.g. CSCE), don't say the department name every time, just say it once at the beginning. "
     "Using several tool calls at once is accepted and encouraged when necessary. "
     # "Use your best judgment; if the user's request is complex, you may need to respond with multiple sentences and/or use several tool calls. "
@@ -507,6 +508,66 @@ TRANSCRIPT_STRING = """{
   }
 }"""
 
+TRANSCRIPT_STRING = """{
+  "studentInfo": {
+    "name": "Anton Angeletti",
+    "programs": [
+      {
+        "type": "Major",
+        "name": "Computer Science"
+      },
+      {
+        "type": "Major",
+        "name": "Mathematics",
+        "option": "Discrete Mathematics and Cryptography"
+      },
+      {
+        "type": "Minor",
+        "name": "Music"
+      }
+    ]
+  },
+  "academicHistory": [
+    {
+      "termName": "Fall 2025",
+      "status": "In Progress",
+      "courses": [
+        {
+          "department": "CSCE",
+          "number": "322",
+          "title": "PRGRM LANG CONCEPTS",
+          "grade": null,
+          "hours": 3.0,
+          "qualityPoints": null
+        },
+        {
+          "department": "CSCE",
+          "number": "401H",
+          "title": "HNRS:DSGN STUDIO I",
+          "grade": null,
+          "hours": 3.0,
+          "qualityPoints": null
+        },
+        {
+          "department": "CSCE",
+          "number": "440",
+          "title": "NUMERICAL ANALYSIS I",
+          "grade": null,
+          "hours": 3.0,
+          "qualityPoints": null
+        },
+        {
+          "department": "CSCE",
+          "number": "838",
+          "title": "INTERNET OF THINGS",
+          "grade": null,
+          "hours": 3.0,
+          "qualityPoints": null
+        }
+      ],
+    }
+  ],
+}"""
 
 def _normalize_conversation(raw_conversation: Iterable[Any]) -> list[dict[str, Any]]:
     """Ensure each conversation item has the shape expected by the agent."""
@@ -560,16 +621,31 @@ def advisor_chat():
     initial_messages = [
         {
             "role": "user",
-            "parts": [f"{SYSTEM_PROMPT}\n\nHere is the student's transcript: {TRANSCRIPT_STRING}\n\nThe conversation begins on my next message."],
+            # "parts": [f"{SYSTEM_PROMPT}\n\nHere is the student's transcript: {TRANSCRIPT_STRING}\n\nThe conversation begins on my next message."],
+            "parts": [f"{SYSTEM_PROMPT}"],
         },
         {
             "role": "model",
-            "parts": ["Okay, let's start!"],
-        },
+            "parts": [f"Okay, let's start! What would you like to discuss?"],
+        }
+        # {
+        #     "role": "model",
+        #     "parts": ["Okay, let's start! Can you provide your transcript as a JSON object?"],
+        # },
+        # {
+        #     "role": "user",
+        #     "parts": [f"Sure, here it is:\n```json\n{TRANSCRIPT_STRING}\n```"],
+        # },
+        # {
+        #     "role": "model",
+        #     "parts": ["Thank you! Now, what would you like to discuss?"],
+        # }
     ]
 
     # Combine initial messages with the request's conversation
     full_conversation = initial_messages + conversation
+    print(f"Full conversation:")
+    pprint(full_conversation)
 
     # print(f"Conversation: {full_conversation}")
     try:

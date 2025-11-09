@@ -29,7 +29,7 @@ type SpeakOptions = {
   onLevel?: (level: number) => void; // 0..1 amplitude level while playing
 };
 
-export async function speakText(text: string, voice_id?: string, options?: SpeakOptions): Promise<boolean> {
+export async function speakText(text: string, voice_id?: string, options?: SpeakOptions): Promise<{ success: boolean; status?: number }> {
   // Stop any in-progress TTS to avoid overlapping speech
   stopCurrentTTS();
   // Use GET streaming endpoint for lower latency playback if available.
@@ -38,7 +38,7 @@ export async function speakText(text: string, voice_id?: string, options?: Speak
   const resp = await fetch(`/api/elevenlabs/tts_stream?${params.toString()}`);
   if (!resp.ok) {
     console.error('TTS request failed', resp.status);
-    return false;
+    return { success: false, status: resp.status };
   }
   // Stream into MediaSource for progressive playback
   const contentType = resp.headers.get('Content-Type') || 'audio/mpeg';
@@ -48,7 +48,7 @@ export async function speakText(text: string, voice_id?: string, options?: Speak
     const url = URL.createObjectURL(blob);
     const audio = new Audio(url);
     audio.onended = () => URL.revokeObjectURL(url);
-    try { await audio.play(); return true; } catch (e) { console.error('Audio play failed', e); return false; }
+    try { await audio.play(); return { success: true }; } catch (e) { console.error('Audio play failed', e); return { success: false }; }
   }
   const mediaSource = new MediaSource();
   currentMediaSource = mediaSource;
@@ -232,7 +232,7 @@ export async function speakText(text: string, voice_id?: string, options?: Speak
   } catch {
     // ignore metering errors
   }
-  return true;
+  return { success: true };
 }
 
 export async function converse(userText: string, options?: SpeakOptions) {
