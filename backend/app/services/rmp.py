@@ -169,7 +169,7 @@ class RMPClient:
                 "difficulty": round(float(professor['avgDifficulty']), 1) if professor.get('avgDifficulty') is not None else None,
                 "num_ratings": professor['numRatings'],
                 "would_take_again": round(float(professor['wouldTakeAgainPercent']), 1) if professor.get('wouldTakeAgainPercent') not in [None, -1] else None,
-                "recent_comments": comments
+                # "recent_comments": comments
             }
                 
         except Exception as e:
