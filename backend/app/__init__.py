@@ -27,6 +27,7 @@ def create_app():
     from .routes.rmp import rmp_bp
     from .routes.agent import agent_bp
     from .routes.unl import unl_routes
+    from .routes.schedule import schedule_bp
 
     app.register_blueprint(health_bp, url_prefix="/api")
     app.register_blueprint(elevenlabs_bp, url_prefix="/api/elevenlabs")
@@ -34,6 +35,7 @@ def create_app():
     app.register_blueprint(rmp_bp, url_prefix="/api/rmp")
     app.register_blueprint(agent_bp, url_prefix="/api/agent")
     app.register_blueprint(unl_routes, url_prefix="/api/unl")
+    app.register_blueprint(schedule_bp, url_prefix="/api/schedule")
 
     @app.get("/")
     def root():
