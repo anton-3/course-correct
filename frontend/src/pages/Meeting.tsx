@@ -40,6 +40,7 @@ const Meeting = () => {
   const [ttsBusy, setTtsBusy] = useState(false);
   const [ttsResult, setTtsResult] = useState<string | null>(null);
   const [inputValue, setInputValue] = useState("");
+  const [audioLevel, setAudioLevel] = useState(0);
   // Mirror interim STT into the typing bar so it doesn't overlap the typewriter
   useEffect(() => {
     if (isSpeaking && sttSupported) {
@@ -122,8 +123,9 @@ const Meeting = () => {
               const speakOptions = {
                 rate: 1.5,
                 onStart: () => setActiveAgentReply(agentReply),
+                onLevel: (lvl: number) => setAudioLevel(lvl),
               };
-              const ok = await speakText(agentReply, voiceId as string | undefined, speakOptions);
+              await speakText(agentReply, voiceId, speakOptions);
               setTimeout(() => setIsAgentSpeaking(false), 200);
               // if (ok) {
               //   const newMessage: Message = {
@@ -165,7 +167,7 @@ const Meeting = () => {
     <div className="h-screen bg-background flex">
       {/* Left side - Agent Visualizer */}
       <div className="flex-1 flex items-center justify-center relative">
-        <AgentVisualizer isAgentSpeaking={isAgentSpeaking} isThinking={isThinking} text={activeAgentReply} />
+        <AgentVisualizer isAgentSpeaking={isAgentSpeaking} isThinking={isThinking} text={activeAgentReply} audioLevel={audioLevel} />
         {!realtimeEnabled ? null : !connected && (
           <div className="absolute top-4 left-1/2 -translate-x-1/2 text-sm text-muted-foreground">
             Connecting to ElevenLabs realtime...
@@ -225,8 +227,9 @@ const Meeting = () => {
                 const speakOptions = {
                   rate: 1.5,
                   onStart: () => setActiveAgentReply(agentReply),
+                  onLevel: (lvl: number) => setAudioLevel(lvl),
                 };
-                const ok = await speakText(agentReply, voiceId as string | undefined, speakOptions);
+                await speakText(agentReply, voiceId, speakOptions);
                 // if (ok) {
                 //   setMessages((prev) => [
                 //     ...prev,

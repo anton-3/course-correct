@@ -26,6 +26,7 @@ type SpeakOptions = {
   onStart?: () => void;
   onEnd?: () => void;
   rate?: number; // playbackRate of the audio element (1.0 = normal)
+  onLevel?: (level: number) => void; // 0..1 amplitude level while playing
 };
 
 export async function speakText(text: string, voice_id?: string, options?: SpeakOptions): Promise<boolean> {
@@ -157,6 +158,80 @@ export async function speakText(text: string, voice_id?: string, options?: Speak
       try { options?.onEnd?.(); } catch (_) { /* ignore */ }
     };
   });
+
+  // Audio level metering via Web Audio API
+  // Audio level metering via Web Audio API
+  try {
+    interface WindowWithCtx extends Window { __wdAudioCtx?: AudioContext }
+    const win = window as WindowWithCtx & typeof globalThis & { webkitAudioContext?: typeof AudioContext };
+    const ACtor = win.AudioContext || win.webkitAudioContext;
+    if (ACtor) {
+      const ctx: AudioContext = win.__wdAudioCtx || new ACtor();
+      if (!win.__wdAudioCtx) win.__wdAudioCtx = ctx;
+      const analyser = ctx.createAnalyser();
+      analyser.fftSize = 1024;
+      analyser.smoothingTimeConstant = 0.85;
+      let cleanup: (() => void) | null = null;
+      let sourceNode: MediaStreamAudioSourceNode | MediaElementAudioSourceNode | null = null;
+      try {
+        type AudioWithCapture = HTMLMediaElement & { captureStream?: () => MediaStream };
+        const elCap = audioEl as unknown as AudioWithCapture;
+        const canCapture = typeof elCap.captureStream === 'function';
+        if (canCapture && elCap.captureStream) {
+          const stream = elCap.captureStream();
+          sourceNode = ctx.createMediaStreamSource(stream);
+          sourceNode.connect(analyser);
+          cleanup = () => { try { if (sourceNode) sourceNode.disconnect(); } catch { /* ignore */ } };
+        } else {
+          const elemSource = ctx.createMediaElementSource(audioEl);
+          sourceNode = elemSource;
+          const zero = ctx.createGain();
+            zero.gain.value = 0;
+          elemSource.connect(analyser);
+          analyser.connect(zero);
+          zero.connect(ctx.destination);
+          cleanup = () => {
+            try { elemSource.disconnect(); } catch { /* ignore */ }
+            try { analyser.disconnect(); } catch { /* ignore */ }
+            try { zero.disconnect(); } catch { /* ignore */ }
+          };
+        }
+      } catch {
+        cleanup = null;
+      }
+      if (sourceNode) {
+        const buf = new Uint8Array(analyser.fftSize);
+        let rafId = 0;
+        const pump = () => {
+          if (currentAudio !== audioEl) {
+            if (cleanup) cleanup();
+            cancelAnimationFrame(rafId);
+            return;
+          }
+          analyser.getByteTimeDomainData(buf);
+          let sum = 0;
+          for (let i = 0; i < buf.length; i++) {
+            const v = (buf[i] - 128) / 128;
+            sum += v * v;
+          }
+          const rms = Math.sqrt(sum / buf.length);
+          const level = Math.max(0, Math.min(1, rms * 1.8));
+          options?.onLevel?.(level);
+          rafId = requestAnimationFrame(pump);
+        };
+        void ctx.resume?.();
+        rafId = requestAnimationFrame(pump);
+        const endHandler = () => {
+          if (cleanup) cleanup();
+          options?.onLevel?.(0);
+        };
+        audioEl.addEventListener('ended', endHandler, { once: true });
+        audioEl.addEventListener('pause', endHandler, { once: true });
+      }
+    }
+  } catch {
+    // ignore metering errors
+  }
   return true;
 }
 
