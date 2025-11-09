@@ -13,7 +13,8 @@ _TOOL_DECLARATIONS = [
         "name": "get_course_info",
         "description": (
             "Look up catalog details for a course by its identifier, such as "
-            "CSCE 123."
+            "CSCE 123, COMM 101, CSCE 155A, etc. These catalog details include"
+            ""
         ),
         "parameters": {
             "type": "object",
@@ -77,7 +78,6 @@ def _handle_get_course_info(payload: ToolPayload) -> ToolResult:
         message = "Course data could not be retrieved."
 
     result: ToolResult = {
-        "course_id": normalized_id,
         "found": found,
         "data": combined_data if found else None,
         "message": message,

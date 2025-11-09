@@ -100,7 +100,7 @@ def run_academic_advisor_agent(
             function_name = function_call.name
             call_args = dict(function_call.args or {})
 
-            print(f"Conversation history: {[item.parts[0].text for item in conversation[2:]]}")
+            # print(f"Conversation history: {conversation_history}")
             print(f"Agent called function {function_name} with args {call_args}")
 
             handler = TOOL_HANDLERS.get(function_name)
@@ -109,7 +109,7 @@ def run_academic_advisor_agent(
 
             tool_output = handler(call_args)
 
-            print(f"Tool output: {tool_output}")
+            # print(f"Tool output: {tool_output}")
 
             # Record tool call event(s) for the caller, if requested
             if tool_events is not None:
@@ -117,6 +117,7 @@ def run_academic_advisor_agent(
                     "type": "tool_call",
                     "name": function_name,
                     "args": call_args,
+                    "output": tool_output,
                 })
                 if function_name == "get_professor_summary":
                     prof_name = str(call_args.get("professor_name", "")).strip()
